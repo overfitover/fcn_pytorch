@@ -36,7 +36,7 @@ tensorboard --logdir ./runs
 运行python predict.py,图片保存在指定文件夹中,方便自己查看.
 
 ## 结果:
-![avatar](./image/4_src.png)
+![avatar](./image/4_src.jpg)
 ![avatar](./image/4_label.png)
 ![avatar](./image/4_out.png)
 这是训练40epoch的结果,可以看出有一定的效果了.不想继续训练了.就这样了.
