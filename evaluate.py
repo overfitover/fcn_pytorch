@@ -12,7 +12,7 @@ import tools
 n_class = 21
 def evaluate():
     use_cuda = torch.cuda.is_available()
-    path = os.path.expanduser('/home/yxk/Downloads/')
+    path = os.path.expanduser('/home/yxk/data/')
     val_data = voc_loader.VOC2012ClassSeg(root=path,
                                 split='val',
                                 transform=True)

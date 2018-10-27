@@ -65,6 +65,11 @@ def labelTopng(label, img_name):
     label_pil = colorize_mask(label)
     label_pil.save(img_name)
 
+def labelToimg(label):
+    label = label.numpy()
+    label_pil = colorize_mask(label)
+    return label_pil
+
 
 def _fast_hist(label_true, label_pred, n_class):
     mask = (label_true >= 0) & (label_true < n_class)

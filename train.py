@@ -11,12 +11,13 @@ import loss
 from torch.optim import Adam, SGD
 from tensorboardX import SummaryWriter
 from argparse import ArgumentParser
+import tools
 
 
 # argumentparse
 parser = ArgumentParser()
 parser.add_argument('-bs', '--batch_size', type=int, default=2, help="batch size of the data")
-parser.add_argument('-e', '--epochs', type=int, default=10, help='epoch of the train')
+parser.add_argument('-e', '--epochs', type=int, default=300, help='epoch of the train')
 parser.add_argument('-c', '--n_class', type=int, default=21, help='the classes of the dataset')
 parser.add_argument('-lr', '--learning_rate', type=float, default=1e-3, help='learning rate')
 args = parser.parse_args()
@@ -34,19 +35,19 @@ best_test_loss = np.inf
 pretrained = 'reload'
 use_cuda = torch.cuda.is_available()
 
-path = os.path.expanduser('/home/yxk/Downloads/')
+# path = os.path.expanduser('/home/yxk/Downloads/')
 
 # dataset 2007
-# path = os.path.expanduser('/home/yxk/project/')
+data_path = os.path.expanduser('/home/yxk/data/')
 
 print('load data....')
-train_data = voc_loader.VOC2012ClassSeg(root=path, split='train', transform=True)
+train_data = voc_loader.VOC2012ClassSeg(root=data_path, split='train', transform=True)
 
 train_loader = torch.utils.data.DataLoader(train_data,
                                            batch_size=batch_size,
                                            shuffle=True,
                                            num_workers=5)
-val_data = voc_loader.VOC2012ClassSeg(root=path,
+val_data = voc_loader.VOC2012ClassSeg(root=data_path,
                             split='val',
                             transform=True)
 val_loader = torch.utils.data.DataLoader(val_data,
@@ -60,13 +61,13 @@ fcn_model = models.FCN8s(pretrained_net=vgg_model, n_class=n_class)
 if use_cuda:
     fcn_model.cuda()
 
-criterion = loss.CrossEntropy2d()
+criterion = loss.CrossEntropyLoss2d()
 # create your optimizer
 optimizer = Adam(fcn_model.parameters())
 # optimizer = torch.optim.SGD(fcn_model.parameters(), lr=0.01)
 
 def train(epoch):
-    fcn_model.train()
+    fcn_model.train()          # tran mode
     total_loss = 0.
     for batch_idx, (imgs, labels) in enumerate(train_loader):
         N = imgs.size(0)
@@ -74,40 +75,49 @@ def train(epoch):
             imgs = imgs.cuda()
             labels = labels.cuda()
 
-        imgs = Variable(imgs)
-        labels = Variable(labels)
+        imgs_tensor = Variable(imgs)       # torch.Size([2, 3, 320, 320])
+        labels_tensor = Variable(labels)   # torch.Size([2, 320, 320])
+        out = fcn_model(imgs_tensor)       # torch.Size([2, 21, 320, 320])
 
-        out = fcn_model(imgs)
+        # with open('./result.txt', 'r+') as f:
+        #     f.write(str(out.detach().numpy()))
+        #     f.write("\n")
 
-        loss = criterion(out, labels)
+        loss = criterion(out, labels_tensor)
         loss /= N
-
-        # visiualize scalar
-        writer.add_scalar("loss", loss, batch_idx)
-        writer.add_scalar("total_loss", total_loss, batch_idx)
-        writer.add_scalars('loss/scalar_group', {"loss": batch_idx*loss,
-                                                 "total_loss": batch_idx*total_loss})
-        writer.add_image('Image', imgs, batch_idx)
-
-
         optimizer.zero_grad()
         loss.backward()
-        optimizer.step()
+        optimizer.step()            # update all arguments
         total_loss += loss.data[0]  # return float
 
+        # if batch_idx == 2:
+        #     break
+
         if (batch_idx) % 20 == 0:
-            print('train epoch [%d/%d], iter[%d/%d], lr %.5f, aver_loss %.5f' % (epoch,
+            print('train epoch [%d/%d], iter[%d/%d], lr %.7f, aver_loss %.5f' % (epoch,
                                                                                  epoch_num, batch_idx,
                                                                                  len(train_loader), learning_rate,
                                                                                  total_loss / (batch_idx + 1)))
 
-        # model save
-        if (epoch) % 5 == 0:
-            torch.save(fcn_model.state_dict(), 'params.pth')
+        # # visiualize scalar
+        # if epoch % 10 == 0:
+        #     label_img = tools.labelToimg(labels[0])
+        #     net_out = out[0].data.max(1)[1].squeeze_(0)
+        #     out_img = tools.labelToimg(net_out)
+        #     writer.add_scalar("loss", loss, epoch)
+        #     writer.add_scalar("total_loss", total_loss, epoch)
+        #     writer.add_scalars('loss/scalar_group', {"loss": epoch * loss,
+        #                                              "total_loss": epoch * total_loss})
+        #     writer.add_image('Image', imgs[0], epoch)
+        #     writer.add_image('label', label_img, epoch)
+        #     writer.add_image("out", out_img, epoch)
 
         assert total_loss is not np.nan
         assert total_loss is not np.inf
 
+    # model save
+    if (epoch) % 20 == 0:
+        torch.save(fcn_model.state_dict(), './pretrained_models/model%d.pth'%epoch)  # save for 5 epochs
     total_loss /= len(train_loader)
     print('train epoch [%d/%d] average_loss %.5f' % (epoch, epoch_num, total_loss))
 
@@ -145,12 +155,12 @@ def test(epoch):
 
 
 if __name__ == '__main__':
+    # print(torch.cuda.is_available())
     for epoch in range(epoch_num):
         train(epoch)
         # test(epoch)
-
         # adjust learning rate
-        if epoch == 1 or epoch == 2:
-            learning_rate *= 0.1
+        if epoch  == 20:
+            learning_rate *= 0.01
             optimizer.param_groups[0]['lr'] = learning_rate
             # optimizer.param_groups[1]['lr'] = learning_rate * 2

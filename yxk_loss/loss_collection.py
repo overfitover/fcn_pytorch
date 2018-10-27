@@ -3,26 +3,14 @@ import torch.nn.functional as F
 import torch
 from torch.autograd import Variable
 
+'''
+如果 reduce = False，那么 size_average 参数失效，直接返回向量形式的 loss；
+如果 reduce = True，那么 loss 返回的是标量
 
-class CrossEntropy2d(nn.Module):
-    '''
-    这个实现有问题, mmp 误事
-    loss doesn't change, loss can not be backward?
+    如果 size_average = True，返回 loss.mean();
+    如果 size_average = True，返回 loss.sum();
+'''
 
-    why need change? only net weight need to be change.
-    '''
-    def __init__(self):
-        super(CrossEntropy2d, self).__init__()
-        self.criterion = nn.CrossEntropyLoss(weight=None, size_average=False)  # should size_average=False?  True for average,false for tatal
-
-    def forward(self, out, target):
-        n, c, h, w = out.size()         # n:batch_size, c:class
-        out = out.view(-1, c)           # (n*h*w, c)
-        target = target.view(-1)        # (n*h*w)
-        # print('out', out.size(), 'target', target.size())
-        loss = self.criterion(out, target)
-
-        return loss
 
 class CrossEntropyLoss(nn.Module):
     def __init__(self):
@@ -34,7 +22,7 @@ class CrossEntropyLoss(nn.Module):
 
 class CrossEntropyLoss2d(nn.Module):
     """
-    亲测有效
+    Negative Log Likelihood
     """
 
     def __init__(self, weight=None, size_average=True):
@@ -43,7 +31,6 @@ class CrossEntropyLoss2d(nn.Module):
 
     def forward(self, inputs, targets):
         return self.nll_loss(F.log_softmax(inputs), targets)
-
 
 def smooth_l1(deltas, targets, sigma=3.0):
     """
@@ -65,8 +52,8 @@ def smooth_l1(deltas, targets, sigma=3.0):
 
     return smooth_l1
 
-
 class FocalLoss(nn.Module):
+
     def __init__(self, gamma=0, alpha=None, size_average=True):
         super(FocalLoss, self).__init__()
         self.gamma = gamma
@@ -97,24 +84,3 @@ class FocalLoss(nn.Module):
         if self.size_average: return loss.mean()
         else:
             return loss.sum()
-
-
-if __name__ == '__main__':
-    loss_fn = torch.nn.CrossEntropyLoss(reduce=False, size_average=False, weight=None)
-    input = Variable(torch.randn(2, 3, 5))  # (batch_size, C)
-    target = Variable(torch.LongTensor(2, 5).random_(3))
-    loss = loss_fn(input, target)
-    print(input)
-    print(target)
-    print(loss)
-
-
-
-
-
-
-
-
-
-
-

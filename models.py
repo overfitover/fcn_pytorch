@@ -117,11 +117,11 @@ class FCN8s(nn.Module):
 
         # self._init_weights()
         #
-        # 1    权重初始化
+        # 1
         init.xavier_uniform_(self.deconv1.weight)
-        # 2    权重初始化
+        # 2
         init.xavier_uniform_(self.deconv2.weight)
-        # 3    权重初始化
+        # 3
         init.xavier_uniform_(self.deconv3.weight)
         init.xavier_uniform_(self.deconv4.weight)
         init.xavier_uniform_(self.deconv5.weight)
@@ -157,7 +157,7 @@ class FCN8s(nn.Module):
                 assert m.kernel_size[0] == m.kernel_size[1]
                 initial_weight = get_upsample_weight(m.in_channels,
                             m.out_channels, m.kernel_size[0])
-                m.weight.data.copy_(initial_weight) # copy not = ?
+                m.weight.data.copy_(initial_weight)                 # copy not = ?
 
 
 class FCN1s(nn.Module):
