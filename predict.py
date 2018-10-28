@@ -23,7 +23,7 @@ def main():
 
     vgg_model = models.VGGNet(requires_grad=True)
     fcn_model = models.FCN8s(pretrained_net=vgg_model, n_class=n_class)
-    fcn_model.load_state_dict(torch.load('./pretrained_models/model40.pth', map_location='cpu'))
+    fcn_model.load_state_dict(torch.load('./pretrained_models/model120.pth', map_location='cpu'))
 
     fcn_model.eval()
 
